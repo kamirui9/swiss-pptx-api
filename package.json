@@ -1,0 +1,15 @@
+{
+  "name": "swiss-pptx-api",
+  "version": "1.0.0",
+  "description": "Swiss IKB Style PPTX generation API for Dify workflows",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "playwright": "1.52.0",
+    "pptxgenjs": "^4.0.1",
+    "sharp": "^0.34.5"
+  }
+}

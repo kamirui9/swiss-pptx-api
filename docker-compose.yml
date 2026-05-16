@@ -1,0 +1,25 @@
+services:
+  swiss-pptx:
+    build: .
+    image: swiss-pptx-api:latest
+    container_name: swiss-pptx-api
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=${NODE_ENV:-production}
+      - TZ=${TZ:-Asia/Shanghai}
+    restart: unless-stopped
+    # Playwright needs /dev/shm for Chromium
+    shm_size: '1gb'
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'

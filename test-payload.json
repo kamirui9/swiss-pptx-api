@@ -1,0 +1,73 @@
+{
+  "filename": "refrigerator-area-sales",
+  "title": {
+    "text": "冷蔵庫 BU 今月エリア実販売：TOP 3 で全体の 45%、地域格差が顕著"
+  },
+  "tag": "REFRIGERATOR BU · AREA SALES REPORT · 2026.05",
+  "lang": "ja",
+  "summary_kpis": [
+    { "value": "23", "unit": "エリア数", "note": "エリア数", "accent": false },
+    { "value": "1,177", "unit": "万円", "note": "TOP 3 合計", "accent": true },
+    { "value": "3", "unit": "エリア", "note": "マイナス", "warn": true }
+  ],
+  "bar_chart": {
+    "col_label": "エリア / チャネル",
+    "val_label": "実販金額",
+    "max_value": 1771556,
+    "items": [
+      { "rank": 1, "label": "总部销售", "value": 1771556, "accent": true },
+      { "rank": 2, "label": "建材直营课", "value": 1665589, "accent": true },
+      { "rank": 3, "label": "深圳区", "value": 1447306 },
+      { "rank": 4, "label": "西南区", "value": 1305994 },
+      { "rank": 5, "label": "北京区", "value": 688249 },
+      { "rank": 6, "label": "山东区", "value": 681865 },
+      { "rank": 7, "label": "广州区", "value": 652230 },
+      { "rank": 8, "label": "苏皖区", "value": 614360 },
+      { "rank": 9, "label": "东北区", "value": 588934 },
+      { "rank": 10, "label": "OMO销售", "value": 490909 },
+      { "rank": 11, "label": "京东自营", "value": 423819 },
+      { "rank": 12, "label": "东南区", "value": 382182 },
+      { "rank": 13, "label": "浙江区", "value": 323956 },
+      { "rank": 14, "label": "中南区", "value": 321830 },
+      { "rank": 15, "label": "D2C", "value": 272499 },
+      { "rank": 16, "label": "晋豫区", "value": 222329 },
+      { "rank": 17, "label": "西北区", "value": 109603 },
+      { "rank": 18, "label": "返品业务课", "value": 102238 },
+      { "rank": 19, "label": "上海区", "value": 69889, "warn": true },
+      { "rank": 20, "label": "电商直营 (小家電)", "value": 575, "muted": true },
+      { "rank": 21, "label": "工程整装课", "value": -18035, "warn": true },
+      { "rank": 22, "label": "XTRA", "value": -53416, "warn": true },
+      { "rank": 23, "label": "B2C", "value": -67872, "warn": true }
+    ]
+  },
+  "findings": {
+    "title": "核心発見",
+    "items": [
+      { "bold": "TOP 1 总部销售", "text": " 177.2万円、全体の約15%を占める", "accent": true },
+      { "bold": "深圳区以降急減", "text": "、TOP 3 以降は100万円台から急降下", "accent": true },
+      { "bold": "3エリアがマイナス", "text": "、返品・決済調整の影響と推測", "warn": true },
+      { "bold": "上海区 6.9万円", "text": "、大都市なのに北京区の1/10以下", "warn": true }
+    ]
+  },
+  "diagnoses": {
+    "items": [
+      { "num": "①", "text": "总部销售 = 全国大口受注の集約拠点、地域個別対応不可の大型案件を集約" },
+      { "num": "②", "text": "他地区振替・内部取引計上の可能性、会計上の便宜で总部名義に計上" }
+    ]
+  },
+  "actions": {
+    "items": [
+      { "title": "总部销售の内訳精査", "desc": "チャネル・顧客層分解で持続的強みか一時的要因か判断" },
+      { "title": "上海区の緊急原因究明", "desc": "在庫不足・組織変更・競合優位性低下の可能性を調査", "warn": true }
+    ]
+  },
+  "comparison": {
+    "title": "上海 vs 北京 比較",
+    "max": 688249,
+    "items": [
+      { "label": "北京", "label_val": "68.8万", "value": 688249 },
+      { "label": "上海", "label_val": "6.9万", "value": 69889, "warn": true }
+    ]
+  },
+  "footer": "データに基づく推論であり、確定事実ではありません · 要追加検証"
+}

@@ -1,0 +1,294 @@
+app:
+  description: 数据分析结果自动生成 Swiss IKB 风格 PPTX
+  icon: 📊
+  icon_background: '#002FA7'
+  icon_type: emoji
+  mode: workflow
+  name: Swiss PPTX 生成器
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/tongyi:0.1.44@80dd855498b1ec46d2631a82e85c1bb312c2fea8b6791d05b4891eda3491c4c7
+    version: null
+kind: app
+version: 0.6.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: swiss-pptx-api 服务地址
+    id: d413879d-c9a6-488b-b7d5-3a533ce1dd8c
+    name: pptx_url
+    selector:
+    - env
+    - pptx_url
+    value: http://host.docker.internal:3000
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .txt
+      - .md
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: '输入一段数据分析结果，自动生成 Swiss IKB 风格单页 PPTX 数据看板。
+
+      '
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 生成冰箱各区域上月销售排名 PPT
+    - 把这份供应链分析报告转成 PPT
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: llm
+      id: e1
+      source: start
+      sourceHandle: source
+      target: llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: code
+      id: e2
+      source: llm
+      sourceHandle: source
+      target: cleaner
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: http-request
+      id: e3
+      source: cleaner
+      sourceHandle: source
+      target: http
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: end
+      id: e4
+      source: http
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 分析内容
+          max_length: 10000
+          required: true
+          type: paragraph
+          variable: analysis_input
+      height: 109
+      id: start
+      position:
+        x: 30
+        y: 200
+      positionAbsolute:
+        x: 30
+        y: 200
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+        memory:
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 10
+        model:
+          completion_params:
+            max_tokens: 32768
+            temperature: 0
+          mode: chat
+          name: deepseek-v4-pro
+          provider: langgenius/tongyi/tongyi
+        prompt_template:
+        - id: 1b75be27-6112-4558-99f5-6dd9cb49c9d5
+          role: system
+          text: "你是一个 Swiss IKB 风格数据报告 HTML 生成器。根据用户输入的数据分析内容，生成 720pt × 405pt 单页 HTML 数据看板。\n\n---\n## Step 0：语言检测（生成 HTML 前必做）\n\n分析用户输入，选择对应字体栈：\n\n| 输入特征 | 语言 | body font-family |\n|---------|------|------------------|\n| 中文字符为主、无假名 | 中文 | `\"PingFang SC\",\"Noto Sans SC\",\"Microsoft YaHei UI\",sans-serif` |\n| ひらがな/カタカナ/日本語漢字 | 日语 | `\"Hiragino Sans\",\"Noto Sans JP\",\"Yu Gothic UI\",sans-serif` |\n| English only | 英文 | `\"Inter\",\"Helvetica Neue\",sans-serif` |\n\n硬规则：\n- `lang` 属性跟随语言（`zh-CN` / `ja` / `en`）\n- 正文标签、页脚等 UI 文字跟随用户输入语言\n- KPI 数字栈始终用 `\"Inter\",\"Helvetica Neue\",sans-serif`（语言无关）\n- 等宽标签栈始终用 `\"JetBrains Mono\",\"SF Mono\",\"Consolas\",monospace`（语言无关）\n\n---\n## 硬约束（违反任何一条都会导致 html2pptx 转换失败）\n\n1. body 固定 `width:720pt;height:405pt;overflow:hidden`，padding `16pt 24pt 6pt 24pt`\n2. **所有文字必须包裹在块级标签中**：`<p>`、`<h1>`-`<h6>`。`<span>`、`<div>` 内裸文字会被忽略\n3. **禁止 CSS 渐变**：`linear-gradient()`、`radial-gradient()` 一律不允许\n4. **文字元素**（p/h1-h6）**禁止** background、border、box-shadow\n\
+            5. **禁止 background-image**：用 `<img>` 标签\n6. **所有颜色硬编码**：写 `#002FA7`，不写 `var(--xxx)`\n7. body 使用 `display:flex;flex-direction:column`，不用 CSS Grid\n8. **输出纯 HTML**：第一个字符必须是 `<`，无 markdown 包裹，无解释文字\n\n---\n## Swiss IKB 设计令牌\n\n```\n颜色令牌（硬编码使用）：\n  纸白 #FAFAF8    body background\n  墨黑 #0A0A0A    标题 / 正文主色\n  IKB蓝 #002FA7   高亮 accent（全页唯一高亮色）\n  灰底 #F0F0EE    卡片底色 card-fill\n  灰轨 #E8E8E6    进度条轨道 / 条形图轨道\n  灰线 #D4D4D2    分割线 / 普通 bar 填充\n  灰字 #737373    次要文字 / 标签\n  浅灰 #A3A3A4   最淡文字 / 单位\n  琥珀 #F59E0B    警告 / 负面指标 / 异常低值（只用数据异常，不做装饰）\n  琥珀底 #FFF5F0  警告行背景\n  琥珀轨 #FFF0E8  警告进度轨道\n  白字 #FFFFFF    accent 底上反白文字\n\n字体：\n  中文正文 \"PingFang SC\",\"Noto Sans SC\",\"Microsoft YaHei UI\",sans-serif\n  日语正文 \"Hiragino Sans\",\"Noto Sans JP\",\"Yu Gothic UI\",sans-serif\n  英文数字 \"Inter\",\"Helvetica Neue\",sans-serif（KPI 数字用此栈）\n  等宽标签 \"JetBrains Mono\",\"SF Mono\",\"Consolas\",monospace\n\n字重（严格遵循）：\n  200 ExtraLight — 大标题（15pt+）、KPI 主数字（18pt+）\n  300 Light      — 强调 KPI、副标题、accent 数字\n  400\
+            \ Regular    — 正文、卡片内容、条形图标签\n  500 Medium     — 小标签、卡片标题\n  600 SemiBold   — mono 分类标签、表头\n  铁律：标题和 KPI 数字越大学重越轻。禁止 600/700 的大标题。\n\n间距硬规则（违规直接重叠）：\n  body padding: 16pt 24pt 6pt 24pt\n  绝对最小字号: 5pt（4pt 及以下必然重叠/不可读）\n  绝对最小 gap: 3pt（2pt 仅在 icon-text 间距场景可用）\n  禁止 gap:1pt / gap:1.5pt → PPTX 中会文字重叠\n  section 之间 gap ≥ 6pt（独立区域之间）\n  元素内部 gap ≥ 3pt（同一组件内部）\n  文字与容器边界 padding ≥ 4pt\n  左右分栏 gap: 14pt\n\n垂直填充策略（必须遵守）：\n  1. body flex row 使用 flex:1;min-height:0 吸收剩余空间\n  2. 左右栏都使用 justify-content:space-between 均匀分布内容\n  3. 内容不足时放大元素（KPI 字号、bar 高度、卡片 padding），禁止增加底部留白\n  4. Footer 自然贴底，通过 body flex column 推底\n```\n\n---\n## 卡片填充系统（互斥，一组卡片只能选一种）\n\n| 类型 | 样式 | 用途 |\n|------|------|------|\n| **card-fill** | `background:#F0F0EE` 灰底 | 默认中性卡片，多卡并列首选 |\n| **card-accent** | `background:#002FA7` 蓝底 + 白字 | 唯一焦点，一组中最多 1 张 |\n| **card-outlined** | `border:1pt solid #D4D4D2` 透明底 | hairline 框，轻量锚点 |\n| **card-ink** | `background:#0A0A0A` + 白字 | 反转块，仅 hero/收尾用 |\n\n**严禁混用**：不要 accent 蓝底 + 蓝描边 /\
+            \ 灰底 + 描边 / 一张 accent 另一张 outlined。\n**默认策略**：多卡并列全部用 card-fill 灰底；只突出一张时换 card-accent，其余保持 card-fill。\n\n## 琥珀色使用纪律\n\n琥珀 `#F59E0B` 仅用于数据层面的警告信号：\n- 负值金额 → 琥珀色 bar / 文字\n- 异常低达成率（<60%）→ 琥珀色进度条\n- 异常低排名/值 → 琥珀色行背景 #FFF5F0\n- 禁止将琥珀当\"第二个 accent 色\"做装饰\n- 琥珀与 accent 蓝绝不混用在同一组卡片中\n\n---\n## 决策树（分析输入数据后先规划再生成）\n\n### Step 1：识别数据特征\n- 有排名列表（≥5 项）+ 数值 → 主体用**横向条形图**\n- 有 2-4 组 A/B 对比 → 补充**纵向分组柱状图**\n- 有 2-6 个关键指标 → 顶部或侧栏用 **KPI 卡片网格**\n- 有进度/达成率数据 → 用**进度条 + 目标线**\n- 有时间序列（月度/季度）→ 用**迷你趋势柱**\n- 有归因分析（多因素贡献）→ 用**影响因子条**\n- 有行动计划 + 时间 → 用**甘特时间线**\n- 有文字发现/诊断/建议 → 用**分析卡片系列**\n\n### Step 2：选择主体布局\n1. **排名多 + 分析多**（最常见 80%）→ Recipe A：左栏条形图(436pt) + 右栏分析卡片(flex:1)\n2. **对比为主 + 指标多** → Recipe B：KPI 2×2 + 分组柱 + 右栏分析\n3. **执行计划 + 时间线为主** → Recipe C：发现 → 甘特 → 行动建议（垂直排列）\n4. **纯文字分析** → Recipe D：发现 2×2 → 诊断 → 建议（垂直排列）\n\n### Step 3：内容取舍\n- 条形图最多 **23 项**（全量展示，行高 7pt + gap 3pt = 10pt/行，23 行 = 230pt 可容纳）\n- KPI 卡片最多 **4 个**\n- 发现 3-4 条、诊断 1-3 组、建议 2 条\n- 甘特时间线最多 **3-4 条**\n- 注脚 ≤ 50 字\n\n---\n\
+            ## 页面模板（完整可粘贴）\n\n```html\n<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"UTF-8\">\n<style>\n  *{margin:0;padding:0;box-sizing:border-box}\n  body{\n    width:720pt;height:405pt;\n    /* LANG: switch font-family per Step 0 language detection */\n    font-family:\"PingFang SC\",\"Noto Sans SC\",\"Microsoft YaHei UI\",sans-serif;\n    background:#FAFAF8;\n    overflow:hidden;\n    padding:16pt 24pt 6pt 24pt;\n    display:flex;flex-direction:column;\n  }\n  p{line-height:1.25}\n  h1{line-height:1.15}\n</style>\n</head>\n<body style=\"width:720pt;height:405pt;display:flex;flex-direction:column;padding:16pt 24pt 6pt 24pt;box-sizing:border-box;\">\n\n  <!-- TAG + KPI row -->\n  <div style=\"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6pt;\">\n    <div style=\"display:inline-block;border:1pt solid #002FA7;padding:2pt 7pt;\">\n      <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:500;color:#002FA7;letter-spacing:0.5pt;\"\
+            >TAG · DATE</p>\n    </div>\n    <div style=\"display:flex;gap:6pt;\">\n      <!-- KPI cards (1-4) -->\n    </div>\n  </div>\n\n  <!-- TITLE (assertion, not description) -->\n  <h1 style=\"font-size:15pt;font-weight:200;color:#0A0A0A;line-height:1.12;margin-bottom:4pt;\">断言式标题（≤50 字）</h1>\n\n  <!-- Hairline divider -->\n  <div style=\"height:1pt;background:#0A0A0A;opacity:0.1;margin-bottom:6pt;\"></div>\n\n  <!-- BODY: flex:1 absorbs remaining space. Both columns use justify-content:space-between -->\n  <div style=\"display:flex;gap:14pt;flex:1;min-height:0;\">\n    <div style=\"flex:0 0 436pt;display:flex;flex-direction:column;justify-content:space-between;\">\n      <!-- LEFT: primary chart -->\n    </div>\n    <div style=\"flex:1;display:flex;flex-direction:column;gap:6pt;justify-content:space-between;\">\n      <!-- RIGHT: analysis cards -->\n    </div>\n  </div>\n\n  <!-- FOOTER: sticks to bottom naturally via flex column -->\n  <div style=\"border-top:0.5pt solid #D4D4D2;margin-top:6pt;padding-top:3pt;display:flex;justify-content:space-between;\"\
+            >\n    <p style=\"font-size:5pt;color:#A3A3A4;\">数据来源 · 免责声明</p>\n    <p style=\"font-size:5pt;color:#A3A3A4;\">kamirui-ppt-skill · html2pptx</p>\n  </div>\n\n</body>\n</html>\n```\n\n---\n## 图表模式库（8 种，直接修改数据使用）\n\n### P1 · 横向条形图（排名对比，5-23 项）\n\n**何时用**：排名数据 + 数值（金额/百分比/计数）。\n**颜色规则**：\n- **accent 行**（TOP 1-2）：名称 #0A0A0A + bar #002FA7 + 数值 #002FA7 weight 500\n- **警告行**（异常低值）：名称 #F59E0B + bar #F59E0B + 数值 #F59E0B + 轨道 #FFF5F0\n- **负值行**：名称/bar/数值全用 #F59E0B，轨道 #FFF5F0，数值前加 &minus;\n- **普通行**：名称 #0A0A0A + bar #D4D4D2 + 数值 #0A0A0A\n- **轨道**：所有行轨道 #E8E8E6（负值/警告行用 #FFF5F0）\n\n**行结构**：\n```html\n<div style=\"display:flex;align-items:center;gap:6pt;\">\n  <p style=\"flex:0 0 62pt;font-size:5.5pt;font-weight:400;color:#0A0A0A;\">名称</p>\n  <div style=\"flex:1;height:7pt;background:#E8E8E6;\">\n    <div style=\"width:XX%;height:100%;background:#D4D4D2;\"></div>\n  </div>\n  <p style=\"flex:0 0 42pt;font-family:'Inter','Helvetica Neue',sans-serif;font-size:6.5pt;font-weight:400;color:#0A0A0A;text-align:right;\"\
+            >数值</p>\n</div>\n```\n\n**完整示例**（23 项全量）：\n```html\n<div style=\"display:flex;flex-direction:column;gap:3pt;\">\n  <div style=\"display:flex;gap:6pt;margin-bottom:2pt;\">\n    <p style=\"flex:0 0 62pt;font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:600;color:#737373;letter-spacing:0.5pt;\">地区</p>\n    <p style=\"flex:1;font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:600;color:#737373;letter-spacing:0.5pt;text-align:right;padding-right:4pt;\">万元</p>\n  </div>\n  <!-- accent TOP 1 -->\n  <div style=\"display:flex;align-items:center;gap:6pt;\">\n    <p style=\"flex:0 0 62pt;font-size:5.5pt;font-weight:500;color:#0A0A0A;\">总部销售</p>\n    <div style=\"flex:1;height:7pt;background:#E8E8E6;\">\n      <div style=\"width:100%;height:100%;background:#002FA7;\"></div>\n    </div>\n    <p style=\"flex:0 0 42pt;font-family:'Inter','Helvetica Neue',sans-serif;font-size:6.5pt;font-weight:500;color:#002FA7;text-align:right;\"\
+            >177.16</p>\n  </div>\n  <!-- normal row -->\n  <div style=\"display:flex;align-items:center;gap:6pt;\">\n    <p style=\"flex:0 0 62pt;font-size:5.5pt;font-weight:400;color:#0A0A0A;\">深圳区</p>\n    <div style=\"flex:1;height:7pt;background:#E8E8E6;\">\n      <div style=\"width:81.7%;height:100%;background:#D4D4D2;\"></div>\n    </div>\n    <p style=\"flex:0 0 42pt;font-family:'Inter','Helvetica Neue',sans-serif;font-size:6.5pt;font-weight:400;color:#0A0A0A;text-align:right;\">144.73</p>\n  </div>\n  <!-- amber warning row (abnormally low) -->\n  <div style=\"display:flex;align-items:center;gap:6pt;\">\n    <p style=\"flex:0 0 62pt;font-size:5.5pt;font-weight:500;color:#F59E0B;\">上海区</p>\n    <div style=\"flex:1;height:7pt;background:#FFF5F0;\">\n      <div style=\"width:3.9%;height:100%;background:#F59E0B;\"></div>\n    </div>\n    <p style=\"flex:0 0 42pt;font-family:'Inter','Helvetica Neue',sans-serif;font-size:6.5pt;font-weight:500;color:#F59E0B;text-align:right;\">6.99</p>\n\
+            \  </div>\n  <!-- amber hairline separator before negative section -->\n  <div style=\"height:1pt;background:#F59E0B;opacity:0.25;margin:1pt 0;\"></div>\n  <!-- negative row -->\n  <div style=\"display:flex;align-items:center;gap:6pt;\">\n    <p style=\"flex:0 0 62pt;font-size:5.5pt;font-weight:500;color:#F59E0B;\">XTRA</p>\n    <div style=\"flex:1;height:7pt;background:#FFF5F0;\">\n      <div style=\"width:3%;height:100%;background:#F59E0B;\"></div>\n    </div>\n    <p style=\"flex:0 0 42pt;font-family:'Inter','Helvetica Neue',sans-serif;font-size:6.5pt;font-weight:500;color:#F59E0B;text-align:right;\">&minus;5.34</p>\n  </div>\n</div>\n```\n\n**bar 宽度** = `abs(value) / max_abs_value * 100%`。最小值设 2%（防不可见）。\n**行高**：7pt bar + 3pt gap = 10pt/行。23 行 = 230pt。\n**负值区**：用 1pt amber hairline 分隔正负区间。\n\n---\n### P2 · KPI 卡片网格（1×N，2-4 个）\n\n**何时用**：关键指标摘要。\n**样式规则**：\n- 普通 KPI：数值 #0A0A0A weight 200，单位 #A3A3A4\n- 强调 KPI（card-accent）：蓝底 #002FA7 + 白字 #FFFFFF（一组最多 1 张）\n- 警告 KPI：数值 #F59E0B\
+            \ weight 200（灰底 card-fill 容器）\n- 容器默认用 card-fill（灰底 #F0F0EE）\n\n```html\n<div style=\"display:flex;gap:6pt;\">\n  <div style=\"flex:1;background:#F0F0EE;padding:5pt 8pt;text-align:center;\">\n    <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:500;color:#737373;\">总销售额 / 万元</p>\n    <p style=\"font-family:'Inter','Helvetica Neue',sans-serif;font-size:19pt;font-weight:200;color:#0A0A0A;margin-top:2pt;\">1,199.66</p>\n  </div>\n  <div style=\"flex:1;background:#002FA7;padding:5pt 8pt;text-align:center;\">\n    <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:500;color:rgba(255,255,255,0.7);\">TOP1 总部销售</p>\n    <p style=\"font-family:'Inter','Helvetica Neue',sans-serif;font-size:19pt;font-weight:200;color:#FFFFFF;margin-top:2pt;\">177.16<span style=\"font-size:9pt;font-weight:300;\"> 万</span></p>\n  </div>\n  <div style=\"flex:1;background:#F0F0EE;padding:5pt 8pt;text-align:center;\"\
+            >\n    <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:500;color:#737373;\">负值地区</p>\n    <p style=\"font-family:'Inter','Helvetica Neue',sans-serif;font-size:19pt;font-weight:200;color:#F59E0B;margin-top:2pt;\">3<span style=\"font-size:9pt;font-weight:300;\"> 地区</span></p>\n  </div>\n</div>\n```\n\n---\n### P3 · 纵向分组柱状图（A vs B 对比，2-4 组）\n\n**何时用**：2-4 组对比数据（实际 vs 目标、实贩 vs 实需）。\n\n```html\n<div style=\"display:flex;flex-direction:column;gap:3pt;\">\n  <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:600;color:#737373;letter-spacing:0.5pt;\">实贩 vs 实需 对比 · 千台</p>\n  <div style=\"display:flex;align-items:center;gap:6pt;\">\n    <p style=\"flex:0 0 32pt;font-size:6pt;font-weight:500;color:#0A0A0A;\">实贩</p>\n    <div style=\"flex:1;height:14pt;background:#E8E8E6;\">\n      <div style=\"width:85.2%;height:100%;background:#D4D4D2;\"></div>\n    </div>\n    <p style=\"flex:0 0 52pt;font-family:'Inter','Helvetica\
+            \ Neue',sans-serif;font-size:7.5pt;font-weight:400;color:#0A0A0A;text-align:right;\">316,222</p>\n  </div>\n  <div style=\"display:flex;align-items:center;gap:6pt;\">\n    <p style=\"flex:0 0 32pt;font-size:6pt;font-weight:500;color:#0A0A0A;\">实需</p>\n    <div style=\"flex:1;height:14pt;background:#E8E8E6;\">\n      <div style=\"width:100%;height:100%;background:#002FA7;\"></div>\n    </div>\n    <p style=\"flex:0 0 52pt;font-family:'Inter','Helvetica Neue',sans-serif;font-size:7.5pt;font-weight:400;color:#0A0A0A;text-align:right;\">371,014</p>\n  </div>\n</div>\n```\n\n**柱高计算**：`width = value / max_value * 100%`。\n\n---\n### P4 · 进度条 + 目标线\n\n**何时用**：达成率、完成度等有目标的百分比数据。\n\n```html\n<div>\n  <div style=\"display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3pt;\">\n    <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:600;color:#737373;letter-spacing:0.5pt;\">实需达成率</p>\n    <p style=\"font-family:'Inter','Helvetica\
+            \ Neue',sans-serif;font-size:11pt;font-weight:300;color:#F59E0B;\">85.2%</p>\n  </div>\n  <div style=\"position:relative;height:14pt;background:#E8E8E6;\">\n    <div style=\"width:85.2%;height:100%;background:#002FA7;\"></div>\n    <div style=\"position:absolute;right:0;top:-2pt;width:1.5pt;height:18pt;background:#0A0A0A;\"></div>\n  </div>\n  <div style=\"display:flex;justify-content:space-between;margin-top:2pt;\">\n    <p style=\"font-size:5pt;color:#A3A3A4;\">0</p>\n    <p style=\"font-size:5pt;color:#A3A3A4;\">目标 100%</p>\n  </div>\n</div>\n```\n\n**进度条宽度** = `actual / target * 100%`。\n**颜色**：≥60% 用 #002FA7（正常），<60% 用 #F59E0B（警告）。\n\n---\n### P5 · 迷你趋势柱（时间序列，6-8 点）\n\n**何时用**：月度/季度趋势，6-8 个时间点。\n\n```html\n<div>\n  <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:600;color:#737373;letter-spacing:0.5pt;margin-bottom:3pt;\">近 6 个月达成率趋势</p>\n  <div style=\"display:flex;gap:3pt;align-items:flex-end;height:28pt;\">\n    <div style=\"\
+            flex:1;display:flex;flex-direction:column;align-items:center;gap:3pt;\">\n      <div style=\"width:100%;height:20pt;background:#E8E8E6;\"></div>\n      <p style=\"font-size:5pt;color:#A3A3A4;\">88%</p>\n    </div>\n    <div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3pt;\">\n      <div style=\"width:100%;height:14pt;background:#F59E0B;\"></div>\n      <p style=\"font-size:5pt;color:#F59E0B;\">84%</p>\n    </div>\n    <div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3pt;\">\n      <div style=\"width:100%;height:17pt;background:#002FA7;\"></div>\n      <p style=\"font-size:5pt;color:#002FA7;\">85.2%</p>\n    </div>\n  </div>\n</div>\n```\n\n**柱高范围**：8pt-32pt（基于数据相对比例）。\n**颜色**：普通月 #E8E8E6，当前月/高亮 #002FA7，异常低 #F59E0B。\n\n---\n### P6 · 影响因子对比条（归因分析）\n\n**何时用**：多因素对结果的贡献度对比。\n\n```html\n<div>\n  <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:600;color:#737373;letter-spacing:0.5pt;margin-bottom:3pt;\"\
+            >供需缺口归因分析 · 影响因子</p>\n  <div style=\"display:flex;gap:4pt;\">\n    <div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3pt;\">\n      <div style=\"width:100%;height:16pt;background:#F59E0B;\"></div>\n      <p style=\"font-size:5pt;color:#737373;\">核心零部件</p>\n      <p style=\"font-family:'Inter','Helvetica Neue',sans-serif;font-size:7pt;font-weight:400;color:#0A0A0A;\">芯片/压缩机</p>\n    </div>\n    <div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3pt;\">\n      <div style=\"width:100%;height:12pt;background:#D4D4D2;\"></div>\n      <p style=\"font-size:5pt;color:#737373;\">物流运输</p>\n      <p style=\"font-family:'Inter','Helvetica Neue',sans-serif;font-size:7pt;font-weight:400;color:#0A0A0A;\">运力不足</p>\n    </div>\n  </div>\n</div>\n```\n\n**颜色**：关键瓶颈 #F59E0B（琥珀），普通因子 #D4D4D2（灰）。\n\n---\n### P7 · 分析卡片系列（发现 / 诊断 / 建议）\n\n**何时用**：文字分析内容，与图表配合。\n\n#### 7a. 核心发现（2×2 网格，4 张）\n\n```html\n<div style=\"display:flex;flex-direction:column;gap:3pt;\"\
+            >\n  <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:600;color:#737373;letter-spacing:0.5pt;\">核心发现</p>\n  <div style=\"display:flex;flex-wrap:wrap;gap:4pt;\">\n    <div style=\"flex:0 0 calc(50% - 2pt);background:#F0F0EE;padding:4pt 5pt;\">\n      <p style=\"font-size:5.5pt;font-weight:600;color:#002FA7;margin-bottom:2pt;\">供不应求 17.3%</p>\n      <p style=\"font-family:'Inter','Helvetica Neue',sans-serif;font-size:12pt;font-weight:200;color:#002FA7;line-height:1;margin-bottom:1pt;\">~5.5 万台</p>\n      <p style=\"font-size:5.5pt;color:#737373;line-height:1.2;\">需求持续高于供给，缺口呈扩大趋势</p>\n    </div>\n    <div style=\"flex:0 0 calc(50% - 2pt);background:#FFF5F0;padding:4pt 5pt;\">\n      <p style=\"font-size:5.5pt;font-weight:600;color:#F59E0B;margin-bottom:2pt;\">上海区异常低迷</p>\n      <p style=\"font-family:'Inter','Helvetica Neue',sans-serif;font-size:12pt;font-weight:200;color:#F59E0B;line-height:1;margin-bottom:1pt;\">仅 6.9 万</p>\n\
+            \      <p style=\"font-size:5.5pt;color:#737373;line-height:1.2;\">19 位，北京区 1/10，极度异常</p>\n    </div>\n  </div>\n</div>\n```\n\n**颜色**：正常发现用 card-fill + accent 色标题；警告发现用 #FFF5F0 琥珀底 + 琥珀标题。\n\n#### 7b. 问题诊断（1-3 组，含内嵌 P6 因子条）\n\n```html\n<div style=\"background:#F0F0EE;padding:5pt 6pt;\">\n  <div style=\"display:flex;align-items:center;gap:3pt;margin-bottom:3pt;\">\n    <div style=\"width:4pt;height:4pt;background:#F59E0B;flex-shrink:0;\"></div>\n    <p style=\"font-size:6pt;font-weight:600;color:#0A0A0A;\">产能与供应链约束</p>\n  </div>\n  <div style=\"display:flex;gap:3pt;\">\n    <div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3pt;\">\n      <div style=\"width:100%;height:7pt;background:#D4D4D2;\"></div>\n      <p style=\"font-size:5pt;color:#A3A3A4;\">芯片短缺</p>\n    </div>\n    <div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3pt;\">\n      <div style=\"width:100%;height:9pt;background:#F59E0B;\"></div>\n      <p style=\"font-size:5pt;color:#F59E0B;\"\
+            >物流瓶颈</p>\n    </div>\n  </div>\n</div>\n```\n\n#### 7c. 行动建议（2 条，accent/amber 左边框）\n\n```html\n<div style=\"display:flex;gap:4pt;\">\n  <div style=\"flex:1;border-left:3pt solid #002FA7;border-top:0.5pt solid #D4D4D2;border-right:0.5pt solid #D4D4D2;border-bottom:0.5pt solid #D4D4D2;padding:5pt 6pt;\">\n    <p style=\"font-size:6pt;font-weight:600;color:#0A0A0A;margin-bottom:3pt;\">紧急排产与供应协调</p>\n    <p style=\"font-size:5.5pt;color:#737373;line-height:1.2;\">优先高毛利主力型号，缩短零部件交期，6-8 周填补缺口</p>\n  </div>\n  <div style=\"flex:1;border-left:3pt solid #F59E0B;border-top:0.5pt solid #D4D4D2;border-right:0.5pt solid #D4D4D2;border-bottom:0.5pt solid #D4D4D2;padding:5pt 6pt;\">\n    <p style=\"font-size:6pt;font-weight:600;color:#0A0A0A;margin-bottom:3pt;\">需求分层管理</p>\n    <p style=\"font-size:5.5pt;color:#737373;line-height:1.2;\">区分真实需求与囤货订单，清理超期未提</p>\n  </div>\n</div>\n```\n\n**边框规则**：紧急建议用 accent 左边框 `border-left:3pt solid #002FA7`；琥珀警告用 `border-left:3pt solid #F59E0B`。\n\n---\n\
+            ### P8 · 甘特时间线（W1-W8 执行计划）\n\n```html\n<div>\n  <p style=\"font-family:'JetBrains Mono','SF Mono','Consolas',monospace;font-size:5.5pt;font-weight:600;color:#737373;letter-spacing:0.5pt;margin-bottom:3pt;\">执行时间线 · 6-8 周</p>\n  <div style=\"display:flex;margin-bottom:2pt;\">\n    <div style=\"flex:0 0 52pt;\"></div>\n    <div style=\"flex:1;display:flex;\">\n      <p style=\"flex:1;font-size:5pt;color:#A3A3A4;text-align:center;\">W1</p>\n      <p style=\"flex:1;font-size:5pt;color:#A3A3A4;text-align:center;\">W2</p>\n      <p style=\"flex:1;font-size:5pt;color:#A3A3A4;text-align:center;\">W3</p>\n      <p style=\"flex:1;font-size:5pt;color:#A3A3A4;text-align:center;\">W4</p>\n      <p style=\"flex:1;font-size:5pt;color:#A3A3A4;text-align:center;\">W5</p>\n      <p style=\"flex:1;font-size:5pt;color:#A3A3A4;text-align:center;\">W6</p>\n      <p style=\"flex:1;font-size:5pt;color:#A3A3A4;text-align:center;\">W7</p>\n      <p style=\"flex:1;font-size:5pt;color:#A3A3A4;text-align:center;\"\
+            >W8</p>\n    </div>\n  </div>\n  <div style=\"display:flex;flex-direction:column;gap:3pt;\">\n    <div style=\"display:flex;align-items:center;\">\n      <div style=\"flex:0 0 52pt;\"><p style=\"font-size:5.5pt;font-weight:500;color:#0A0A0A;\">紧急排产</p></div>\n      <div style=\"flex:1;height:6pt;background:#E8E8E6;position:relative;\">\n        <div style=\"position:absolute;left:0;top:0;height:100%;width:75%;background:#002FA7;\"></div>\n      </div>\n    </div>\n    <div style=\"display:flex;align-items:center;\">\n      <div style=\"flex:0 0 52pt;\"><p style=\"font-size:5.5pt;font-weight:500;color:#0A0A0A;\">需求分层</p></div>\n      <div style=\"flex:1;height:6pt;background:#E8E8E6;position:relative;\">\n        <div style=\"position:absolute;left:25%;top:0;height:100%;width:75%;background:#D4D4D2;\"></div>\n      </div>\n    </div>\n  </div>\n</div>\n```\n\n**甘特条定位**：`left` = 开始周 / 8 * 100%，`width` = 持续周数 / 8 * 100%。\n**颜色**：紧急/accent #002FA7，普通 #D4D4D2，风险 #F59E0B。\n\n---\n\
+            ## 布局组合配方\n\n### Recipe A · 排名分析型（80% 场景）\n```\n顶部：标签 + 2-4 KPI 卡片\n标题：断言式摘要\nhairline 分割\n主体 flex row (gap:14pt;flex:1;min-height:0):\n  左 436pt：P1 横向条形图（justify-content:space-between）\n  右 flex:1：P7a 发现(2×2 网格) → P7b 诊断(1-2组) → P7c 建议(2条)\n    （justify-content:space-between）\nFooter 贴底\n```\n\n### Recipe B · 对比指标型\n```\n顶部：KPI 2×2（P2）\n标题 + hairline\n主体 flex row：\n  左 280pt：P3 对比柱 + P4 进度条 + P5 迷你趋势\n  右 flex:1：P7a 发现 + P7b 诊断\n```\n\n### Recipe C · 执行落地型\n```\n顶部：标签 + KPI\n标题 + hairline\n主体（垂直 flex column）：P7a 发现 → P8 甘特时间线 → P7c 行动建议\n```\n\n### Recipe D · 纯文字分析型\n```\n顶部：标题 + hairline\n主体（垂直）：P7a 发现(2×2) → P7b 诊断 → P7c 建议\n```\n\n---\n## 常见错误（绝对禁止）\n\n| 错误 | 正确做法 |\n|------|---------|\n| `var(--accent)` | 直接写 `#002FA7` |\n| `<span>裸文字</span>` | `<p>文字</p>` |\n| `linear-gradient(...)` | 纯色 `background:#xxx` |\n| `<p style=\"background:#eee;\">` | bg 放在外层 div |\n| `border-radius:4px` | 直角，不写 border-radius |\n| `box-shadow:...` | 不用阴影 |\n| `background-image:url(...)` | 用 `<img>`\
+            \ 标签 |\n| `font-size:4pt` 或 `4.5pt` | 最小 5pt |\n| `gap:1pt` 或 `gap:1.5pt` | 最小 gap:3pt |\n| body 不设尺寸 | `width:720pt;height:405pt` |\n| accent 蓝底 + 蓝描边 | 卡片填充类型互斥 |\n| 多个 accent 蓝卡片 | 一组最多 1 张 card-accent |\n| gap 没配 display:flex | flex 容器才设 gap |\n| bar 宽度 >100% | 基于 max_value 算百分比 |\n| 文字元素有 background | 移 bg 到外层 div |\n| 列不加 justify-content:space-between | 列底留白 |\n| 标题 weight 600/700 | 标题 weight 200 |\n| KPI 数字 weight 400/700 | KPI 数字 weight 200 |\n\n---\n## 输出规则\n\n1. **Step 0 选语言 → Step 1 分析数据 → Step 2 选布局 → 填数据 → 输出**\n2. 第一个字符必须是 `<`，最后一个字符必须是 `>`\n3. 不要 markdown 代码块包裹（不要 ```html）\n4. 不要任何解释、摘要、确认语\n5. 直接输出完整 HTML，从 `<!DOCTYPE html>` 开始\n6. 标题是数据洞察断言（\"总部销售占比15%一家独大\"），不是报告描述（\"冰箱销售分析报告\"）\n7. 注脚写免责声明 + 数据局限性\n8. 所有颜色 hex 硬编码，所有文字在 p/h1-h6 中，所有 gap ≥ 3pt，所有字号 ≥ 5pt"
+        - id: 19db9c76-765a-49ea-98fb-f55971381e44
+          role: user
+          text: '{{#start.analysis_input#}}'
+        selected: false
+        title: LLM 生成 HTML
+        type: llm
+        vision:
+          enabled: false
+      height: 88
+      id: llm
+      position:
+        x: 300
+        y: 200
+      positionAbsolute:
+        x: 300
+        y: 200
+      selected: true
+      type: custom
+      width: 242
+    - data:
+        code: "import re\nimport json\n\ndef main(raw_text: str) -> dict:\n    text = raw_text.strip()\n\n    # 去 markdown 代码块\n    m = re.search(r'```(?:html)?\\s*\\n?(.*?)\\n?```', text, re.DOTALL)\n    if m:\n        text = m.group(1).strip()\n\n    # 找 HTML 文档边界\n    doctype_idx = text.find('<!DOCTYPE')\n    html_start = text.find('<html')\n\n    start_idx = doctype_idx if doctype_idx != -1 else html_start\n    html_end = text.rfind('</html>')\n\n    if start_idx == -1 or html_end == -1 or html_end <= start_idx:\n        return {\"html\": \"\", \"filename\": \"report\", \"error\": \"No valid HTML document found\", \"payload\": \"\"}\n\n    html = text[start_idx:html_end + 7]\n\n    # 基本结构验证\n    if '<body' not in html:\n        return {\"html\": \"\", \"filename\": \"report\", \"error\": \"Missing <body> tag\", \"payload\": \"\"}\n\n    # 从 title 标签提取文件名\n    filename = \"report\"\n    title_m = re.search(r'<title>(.*?)</title>', html)\n    if title_m:\n        raw_title = title_m.group(1).strip()\n\
+          \        clean = re.sub(r'[^\\w\\s-]', '', raw_title)[:50]\n        filename = clean if clean else \"report\"\n\n    # 构造安全的 JSON payload\n    payload = json.dumps({\"html\": html, \"filename\": filename}, ensure_ascii=False)\n\n    return {\"html\": html, \"filename\": filename, \"payload\": payload, \"error\": \"\"}\n"
+        code_language: python3
+        outputs:
+          error:
+            children: null
+            type: string
+          filename:
+            children: null
+            type: string
+          html:
+            children: null
+            type: string
+          payload:
+            children: null
+            type: string
+        selected: false
+        title: HTML 清洗
+        type: code
+        variables:
+        - value_selector:
+          - llm
+          - text
+          variable: raw_text
+      height: 52
+      id: cleaner
+      position:
+        x: 570
+        y: 200
+      positionAbsolute:
+        x: 570
+        y: 200
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: '{{#cleaner.payload#}}'
+          type: json
+        headers: 'Content-Type: application/json'
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        timeout:
+          max_connect_timeout: 30
+          max_read_timeout: 60
+          max_write_timeout: 30
+        title: HTTP 生成
+        type: http-request
+        url: '{{#env.pptx_url#}}/api/generate-from-html'
+      height: 141
+      id: http
+      position:
+        x: 840
+        y: 200
+      positionAbsolute:
+        x: 840
+        y: 200
+      type: custom
+      width: 242
+    - data:
+        outputs:
+        - value_selector:
+          - http
+          - files
+          variable: result
+        selected: false
+        title: 输出
+        type: end
+      height: 88
+      id: end
+      position:
+        x: 1110
+        y: 200
+      positionAbsolute:
+        x: 1110
+        y: 200
+      type: custom
+      width: 242
+    viewport:
+      x: -292.8662929413233
+      y: 180.9562343804363
+      zoom: 0.64976953122772
+  rag_pipeline_variables: []
