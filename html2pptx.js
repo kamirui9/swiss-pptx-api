@@ -184,6 +184,7 @@ function addElements(slideData, targetSlide, pres) {
         margin: el.style.margin
       };
       if (el.style.margin) listOptions.margin = el.style.margin;
+      if (el.style.whiteSpace === 'nowrap') listOptions.wrap = false;
       targetSlide.addText(el.items, listOptions);
     } else {
       // Check if text is single-line (height suggests one line)
@@ -234,6 +235,7 @@ function addElements(slideData, targetSlide, pres) {
       if (el.style.margin) textOptions.margin = el.style.margin;
       if (el.style.rotate !== undefined) textOptions.rotate = el.style.rotate;
       if (el.style.transparency !== null && el.style.transparency !== undefined) textOptions.transparency = el.style.transparency;
+      if (el.style.whiteSpace === 'nowrap') textOptions.wrap = false;
 
       targetSlide.addText(el.text, textOptions);
     }
@@ -788,6 +790,7 @@ async function extractSlideData(page) {
             lineSpacing: computed.lineHeight && computed.lineHeight !== 'normal' ? pxToPoints(computed.lineHeight) : null,
             paraSpaceBefore: 0,
             paraSpaceAfter: pxToPoints(computed.marginBottom),
+            whiteSpace: computed.whiteSpace,
             // PptxGenJS margin array is [left, right, bottom, top]
             margin: [marginLeft, 0, 0, 0]
           }
@@ -826,6 +829,7 @@ async function extractSlideData(page) {
         lineSpacing: pxToPoints(computed.lineHeight),
         paraSpaceBefore: pxToPoints(computed.marginTop),
         paraSpaceAfter: pxToPoints(computed.marginBottom),
+        whiteSpace: computed.whiteSpace,
         // PptxGenJS margin array is [left, right, bottom, top] (not [top, right, bottom, left] as documented)
         margin: [
           pxToPoints(computed.paddingLeft),
