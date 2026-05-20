@@ -9,6 +9,7 @@ services:
       - PORT=3000
       - NODE_ENV=${NODE_ENV:-production}
       - TZ=${TZ:-Asia/Shanghai}
+      - MAX_CONCURRENT=${MAX_CONCURRENT:-4}
     restart: unless-stopped
     # Playwright needs /dev/shm for Chromium
     shm_size: '1gb'

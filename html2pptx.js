@@ -25,9 +25,9 @@
  *   { slide, placeholders } where placeholders is an array of { id, x, y, w, h }
  */
 
-const { chromium } = require('playwright');
 const path = require('path');
 const sharp = require('sharp');
+const { acquireContextAndPage, releaseContext } = require('./browser-pool');
 
 const PT_PER_PX = 0.75;
 const PX_PER_IN = 96;
@@ -904,13 +904,8 @@ async function html2pptx(htmlFile, pres, options = {}) {
   } = options;
 
   try {
-    // Use Chrome on macOS, default Chromium on Unix
-    const launchOptions = { env: { TMPDIR: tmpDir } };
-    if (process.platform === 'darwin') {
-      launchOptions.channel = 'chrome';
-    }
-
-    const browser = await chromium.launch(launchOptions);
+    // 从浏览器池获取隔离的 context + page（复用全局单例 Chromium）
+    const { context, page } = await acquireContextAndPage();
 
     let bodyDimensions;
     let slideData;
@@ -919,12 +914,6 @@ async function html2pptx(htmlFile, pres, options = {}) {
     const validationErrors = [];
 
     try {
-      const page = await browser.newPage();
-      page.on('console', (msg) => {
-        // Log the message text to your test runner's console
-        console.log(`Browser console: ${msg.text()}`);
-      });
-
       await page.goto(`file://${filePath}`);
 
       bodyDimensions = await getBodyDimensions(page);
@@ -936,7 +925,8 @@ async function html2pptx(htmlFile, pres, options = {}) {
 
       slideData = await extractSlideData(page);
     } finally {
-      await browser.close();
+      // 关闭隔离 context，归还信号量（不关闭共享浏览器）
+      await releaseContext(context);
     }
 
     // Collect all validation errors

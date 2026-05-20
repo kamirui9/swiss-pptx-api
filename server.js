@@ -5,6 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const html2pptx = require('./html2pptx');
 const { buildSwissHTML } = require('./templates/swiss-template');
+const { getStatus, shutdown } = require('./browser-pool');
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
@@ -12,6 +13,11 @@ app.use(express.json({ limit: '1mb' }));
 // ─── Health check ────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'swiss-pptx-api' });
+});
+
+// ─── Pool status ─────────────────────────────────────────────
+app.get('/api/pool-status', (_req, res) => {
+  res.json(getStatus());
 });
 
 // ─── PPTX Generation ─────────────────────────────────────────
@@ -128,7 +134,23 @@ app.post('/api/generate-from-html', async (req, res) => {
 
 // ─── Start ───────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Swiss PPTX API running on http://0.0.0.0:${PORT}`);
-  console.log('Endpoint: POST /api/generate');
+  console.log(`Max concurrent conversions: ${getStatus().max}`);
+  console.log('Endpoints: POST /api/generate | POST /api/generate-from-html | GET /api/health | GET /api/pool-status');
+});
+
+// 优雅关闭
+process.on('SIGINT', async () => {
+  console.log('\n[server] SIGINT received, shutting down...');
+  server.close();
+  await shutdown();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n[server] SIGTERM received, shutting down...');
+  server.close();
+  await shutdown();
+  process.exit(0);
 });
