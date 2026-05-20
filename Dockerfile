@@ -7,7 +7,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --only=production
 
 # Copy app code
-COPY server.js html2pptx.js ./
+COPY server.js html2pptx.js browser-pool.js ./
 COPY templates/ ./templates/
 
 # Health check
